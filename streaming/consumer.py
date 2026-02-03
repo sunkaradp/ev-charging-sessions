@@ -1,69 +1,82 @@
 import json
 import time
-from collections import Counter
-import os
+from collections import Counter, deque
+from statistics import mean
 from kafka import KafkaConsumer
-from dotenv import load_dotenv
 
-load_dotenv()
+TOPIC = "ev-charging-sessions"
+BOOTSTRAP_SERVERS = "localhost:9092"
+GROUP_ID = "ev-charging-consumer"
+WINDOW_SECONDS = 60
+PRINT_EVERY_SECONDS = 5
 
-topic = os.getenv("KAFKA_TOPIC")
-bootstrap = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
-
-consumer = KafkaConsumer(
-    topic,
-    bootstrap_servers=bootstrap,
-    auto_offset_reset="latest",
-    enable_auto_commit=True,
-    group_id="ev-charging-consumer",
-    value_deserializer=lambda m: json.loads(m.decode("utf-8"))
-)
-
-BATCH_SECONDS = 60
-DURATION_ALERT_THRESHOLD = 120
-STATION_OVERLOAD_THRESHOLD = 30
-
-def summarize(batch):
-    count = len(batch)
-    energies = [x.get("energy_kwh") for x in batch if isinstance(x.get("energy_kwh"), (int, float))]
-    durations = [x.get("duration_min") for x in batch if isinstance(x.get("duration_min"), (int, float))]
-    stations = [x.get("station_id") for x in batch if x.get("station_id")]
-
-    avg_energy = round(sum(energies) / len(energies), 2) if energies else None
-    avg_duration = round(sum(durations) / len(durations), 2) if durations else None
-    top_stations = Counter(stations).most_common(3)
-
-    alerts = []
-    if avg_duration is not None and avg_duration > DURATION_ALERT_THRESHOLD:
-        alerts.append(f"ALERT_DURATION avg_duration_min={avg_duration}")
-
-    for station_id, c in top_stations:
-        if c >= STATION_OVERLOAD_THRESHOLD:
-            alerts.append(f"ALERT_STATION_LOAD station_id={station_id} count={c}")
-
-    return {
-        "window_seconds": BATCH_SECONDS,
-        "events_count": count,
-        "avg_energy_kwh": avg_energy,
-        "avg_duration_min": avg_duration,
-        "top_stations": top_stations,
-        "alerts": alerts
-    }
+def safe_float(x):
+    try:
+        if x is None:
+            return None
+        return float(x)
+    except Exception:
+        return None
 
 def main():
-    batch = []
-    window_start = time.time()
+    consumer = KafkaConsumer(
+        TOPIC,
+        bootstrap_servers=BOOTSTRAP_SERVERS,
+        group_id=GROUP_ID,
+        auto_offset_reset="earliest",
+        enable_auto_commit=True,
+        value_deserializer=lambda v: json.loads(v.decode("utf-8")),
+    )
 
-    while True:
-        msg = consumer.poll(timeout_ms=1000, max_records=500)
-        for _, records in msg.items():
-            for record in records:
-                batch.append(record.value)
+    window = deque()
+    last_print = time.time()
 
-        if time.time() - window_start >= BATCH_SECONDS:
-            print(json.dumps(summarize(batch), indent=2))
-            batch = []
-            window_start = time.time()
+    print("consumer started")
+
+    for msg in consumer:
+        event = msg.value
+        now = time.time()
+
+        window.append((now, event))
+
+        cutoff = now - WINDOW_SECONDS
+        while window and window[0][0] < cutoff:
+            window.popleft()
+
+        if now - last_print >= PRINT_EVERY_SECONDS:
+            last_print = now
+
+            events = [e for _, e in window]
+
+            energy_vals = [safe_float(e.get("energy_kwh")) for e in events]
+            energy_vals = [x for x in energy_vals if x is not None]
+
+            duration_vals = [safe_float(e.get("duration_min")) for e in events]
+            duration_vals = [x for x in duration_vals if x is not None]
+
+            station_counts = Counter(
+                [e.get("station_id") for e in events if e.get("station_id")]
+            )
+
+            alerts = []
+            for e in events[-10:]:
+                dur = safe_float(e.get("duration_min"))
+                price = safe_float(e.get("price_eur"))
+                if dur is not None and dur > 180:
+                    alerts.append({"type": "long_session", "session_id": e.get("session_id")})
+                if price is not None and price > 50:
+                    alerts.append({"type": "high_price", "session_id": e.get("session_id")})
+
+            output = {
+                "window_seconds": WINDOW_SECONDS,
+                "events_count": len(events),
+                "avg_energy_kwh": round(mean(energy_vals), 2) if energy_vals else None,
+                "avg_duration_min": round(mean(duration_vals), 2) if duration_vals else None,
+                "top_stations": station_counts.most_common(5),
+                "alerts": alerts,
+            }
+
+            print(json.dumps(output, indent=2))
 
 if __name__ == "__main__":
     main()
