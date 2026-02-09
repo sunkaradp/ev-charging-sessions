@@ -1,0 +1,4 @@
+timestamp,session_id,station_id,city,energy,duration,price
+2026-02-08T10:00:00Z,s1,st01,Berlin,12.5,30,6.2
+2026-02-08T11:00:00Z,s2,st01,Berlin,15.0,40,7.5
+2026-02-08T12:00:00Z,s3,st02,Hamburg,10.0,25,5.0
