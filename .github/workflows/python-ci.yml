@@ -26,4 +26,6 @@ jobs:
       - name: Compile Python source
         run: python -m compileall -q batch_airflow tests
       - name: Run unit tests
+        env:
+          PYTHONPATH: .
         run: pytest -q
