@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 import pandas as pd
 import pendulum
 
@@ -8,6 +9,7 @@ from airflow.decorators import dag, task
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]  # ev-charging-sessions/
+sys.path.insert(0, str(PROJECT_DIR))
 AIRFLOW_HOME_DIR = Path(__file__).resolve().parents[1]  # batch_airflow/
 
 RAW_DIR = PROJECT_DIR / "raw"
