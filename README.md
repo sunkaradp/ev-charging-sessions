@@ -19,6 +19,18 @@ TABLE OF CONTENTS
 - [Contributing](#contributing)
 - [License](#license)
 
+## Team project and contribution scope
+
+This is a collaborative project. The repository history includes work from multiple contributors; the project should not be read as an individual, end-to-end implementation by one person.
+
+My documented contributions in the current repository history include:
+- Improving Kafka producer configuration validation, delivery acknowledgements, retry behavior, event identifiers and UTC timestamps.
+- Extracting and testing reusable batch transformation functions for cleaning and daily aggregation.
+- Adding Python CI coverage for the batch transformations and Kafka producer.
+- Repository hygiene, including ignoring and removing generated local Airflow runtime artifacts.
+
+Please use the commit and pull-request history for the exact change-level attribution. Other components and design decisions may include contributions from other team members.
+
 PROJECT OVERVIEW
 
 The EV Charging Analytics Platform addresses the critical need for real-time monitoring and forecasting in EV charging networks. By processing continuous streams of charging session data, the platform enables data-driven decision-making for operational efficiency and revenue optimization.
