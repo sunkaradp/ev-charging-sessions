@@ -357,21 +357,16 @@ Configured alerts for:
 - BigQuery query failures
 - Data quality threshold violations
 
-RESULTS AND PERFORMANCE
+VALIDATION STATUS
 
-Model Performance Metrics
+The repository contains automated checks for producer configuration and event generation, plus batch transformation behavior. The current CI compiles the Python source and runs pytest.
 
-The Multiple Linear Regression model achieved the following performance:
+The earlier throughput, end-to-end latency, batch duration and model-quality statements did not have a reproducible benchmark artifact in the repository. They are not presented as verified results. See the evidence documentation for the current checks and a plan for collecting reproducible measurements.
 
-- Mean Absolute Error (MAE): USD accuracy within expected range
-- Mean Squared Error (MSE): Penalizes larger prediction errors appropriately
-- R² Score: Explains significant variance in revenue based on operational metrics
+ARCHITECTURE AND VERIFICATION EVIDENCE
 
-Throughput and Latency
-
-- **Streaming Throughput**: Handles 1000+ events/second
-- **End-to-End Latency**: <5 seconds from event generation to dashboard update
-- **Batch Processing Time**: Daily aggregations complete within 2 hours
+- Architecture diagram separating implemented local components from documented cloud extensions: docs/architecture.md
+- CI checks, test inventory, current implementation scope and measurement plan: docs/evidence.md
 
 CHALLENGES AND SOLUTIONS
 
