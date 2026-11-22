@@ -206,3 +206,38 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 gcp-key.json
+
+# Local virtual environments
+.venv*/
+venv*/
+.env/
+
+# Airflow local runtime state
+airflow.db
+airflow.db-*
+airflow-webserver.pid
+airflow-scheduler.pid
+airflow-webserver.out
+airflow-scheduler.out
+logs/
+airflow/logs/
+batch_airflow/logs/
+batch_airflow/_tmp/
+batch_airflow/batch_output/
+
+# Generated local data and model artifacts
+*.parquet
+*.pkl
+*.pickle
+*.joblib
+
+# Local editor and OS files
+.DS_Store
+Thumbs.db
+
+# Local secrets and service-account credentials
+.env
+.env.*
+!.env.example
+*-service-account*.json
+gcp-key.json
