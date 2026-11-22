@@ -36,6 +36,7 @@ def test_generated_event_has_unique_id_and_utc_timestamp():
 
 
 def test_synthetic_edge_cases_are_deterministic():
-    event = generate_event(120)
-    assert event["energy_kwh"] is None
-    assert event["duration_min"] == 999
+    missing_energy_event = generate_event(150)
+    long_duration_event = generate_event(120)
+    assert missing_energy_event["energy_kwh"] is None
+    assert long_duration_event["duration_min"] == 999
