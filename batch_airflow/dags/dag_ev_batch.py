@@ -48,56 +48,20 @@ def ev_batch_pipeline():
 
     @task
     def clean_data(raw_path: str) -> str:
-        df = pd.read_parquet(raw_path)
+        from batch_airflow.transform import clean_dataframe
 
-        df.columns = [c.strip().lower() for c in df.columns]
-
-        rename = {
-            "timestamp": "event_time",
-            "time": "event_time",
-            "stationid": "station_id",
-            "sessionid": "session_id",
-            "energy": "energy_kwh",
-            "duration": "duration_min",
-            "price": "price_eur",
-            "type": "event_type",
-        }
-        df = df.rename(columns=rename)
-
-        required = ["event_time", "session_id", "station_id", "city"]
-        for col in required:
-            if col not in df.columns:
-                raise ValueError(f"Missing column {col}")
-
-        df["event_time"] = pd.to_datetime(df["event_time"], errors="coerce", utc=True)
-        df["energy_kwh"] = pd.to_numeric(df.get("energy_kwh"), errors="coerce")
-        df["duration_min"] = pd.to_numeric(df.get("duration_min"), errors="coerce")
-        df["price_eur"] = pd.to_numeric(df.get("price_eur"), errors="coerce")
-
-        df = df.dropna(subset=["event_time", "session_id", "station_id", "city"])
-        df["event_date"] = df["event_time"].dt.date.astype(str)
-
+        df = clean_dataframe(pd.read_parquet(raw_path))
         path = TMP_DIR / "clean.parquet"
         df.to_parquet(path, index=False)
         return str(path)
 
     @task
     def aggregate_data(clean_path: str) -> str:
-        df = pd.read_parquet(clean_path)
+        from batch_airflow.transform import aggregate_dataframe
 
-        grouped = (
-            df.groupby(["event_date", "city", "station_id"])
-            .agg(
-                unique_sessions=("session_id", "nunique"),
-                avg_energy_kwh=("energy_kwh", "mean"),
-                avg_duration_min=("duration_min", "mean"),
-                total_revenue_eur=("price_eur", "sum"),
-            )
-            .reset_index()
-        )
-
+        df = aggregate_dataframe(pd.read_parquet(clean_path))
         path = TMP_DIR / "aggregated.csv"
-        grouped.to_csv(path, index=False)
+        df.to_csv(path, index=False)
         return str(path)
 
     @task
